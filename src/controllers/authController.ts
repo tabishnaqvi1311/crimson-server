@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
 import { OAuth2Client } from "google-auth-library"
+import prisma from "../utils/db.js";
+import jwt from 'jsonwebtoken';
+import sendMagicLink from "../utils/sendMagicLink.js";
 
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -9,12 +12,16 @@ const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_ACCESS_TOKEN_URL = process.env.GOOGLE_ACCESS_TOKEN_URL;
 
+const JWT_SECRET = "/YtspIchVV6ZzTj7aDhDXQ==";
+
 
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 interface AuthController {
     google: (req: Request, res: Response) => any,
-    callback: (req: Request, res: Response) => any
+    callback: (req: Request, res: Response) => any,
+    login: (req: Request, res: Response) => any,
+    verify: (req: Request, res: Response) => any,
 }
 
 
@@ -68,8 +75,72 @@ export const authController: AuthController = {
         })
 
         const payload = ticket.getPayload();
-        if(!payload) return res.status(400).json({message: "invalid token payload"});
+        if (!payload) return res.status(400).json({ message: "invalid token payload" });
 
         return res.redirect("http://localhost:5173");
+    },
+
+    login: async (req: Request, res: Response) => {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ message: "email is required" });
+
+        const user = await prisma.user.findUnique({
+            where: {
+                email: email
+            }
+        })
+        // if user exists, send magic link
+        if (user != null) {
+            try {
+                const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "1h" });
+                await sendMagicLink(user.email, token);
+                console.log("magic link sent");
+                return res.status(200).json({ message: "check your email for a magic link" });
+            } catch (e) {
+                console.log(e);
+                return res.status(500).json({ message: "internal server error" });
+            }
+        }
+
+        // we dont want to leak if a user exists or not
+        // so we also make an account for them if they dont exist
+
+
+        const newUser = await prisma.user.create({
+            data: {
+                email: email,
+                role: "TALENT",
+            }
+        });
+
+        try {
+            const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: "1h" });
+            await sendMagicLink(newUser.email, token);
+            console.log("magic link sent");
+        } catch (e) {
+            console.log(e)
+        }
+
+        return res.status(200).json({ message: "check your email for a magic link" });
+    },
+
+    verify: async (req: Request, res: Response) => {
+        const { token } = req.query;
+        if (!token) return res.status(401).json({ message: "forbidden" });
+        let user = null;
+
+        try {
+            const payload = jwt.verify(token as string, JWT_SECRET) as { userId: string };
+            user = await prisma.user.findUnique({
+                where: {
+                    id: payload.userId
+                }
+            })
+            if(!user) return res.status(401).json({ message: "forbidden" });
+        } catch(e){
+            return res.status(500).json({message: "internal server error"});
+        }
+        
+        return res.status(200).json({ user });
     }
 }
