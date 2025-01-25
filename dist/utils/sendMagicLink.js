@@ -11,7 +11,7 @@ export default async function sendMagicLink(email, token) {
         to: [email],
         subject: "Login to your account",
         html: `
-            <a href="http://localhost:3000/auth/verify?token=${token}">Click here to login</a>
+            <a href="http://localhost:8080/auth/verify?token=${token}">Click here to login</a>
         `
     });
 }

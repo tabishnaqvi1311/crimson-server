@@ -56,41 +56,36 @@ export const authController = {
         const { email } = req.body;
         if (!email)
             return res.status(400).json({ message: "email is required" });
-        const user = await prisma.user.findUnique({
-            where: {
-                email: email
-            }
-        });
-        // if user exists, send magic link
-        if (user != null) {
-            try {
+        try {
+            const user = await prisma.user.findUnique({
+                where: {
+                    email: email
+                }
+            });
+            // if user exists, send magic link
+            if (user) {
                 const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "1h" });
                 await sendMagicLink(user.email, token);
                 console.log("magic link sent");
                 return res.status(200).json({ message: "check your email for a magic link" });
             }
-            catch (e) {
-                console.log(e);
-                return res.status(500).json({ message: "internal server error" });
-            }
-        }
-        // we dont want to leak if a user exists or not
-        // so we also make an account for them if they dont exist
-        const newUser = await prisma.user.create({
-            data: {
-                email: email,
-                role: "TALENT",
-            }
-        });
-        try {
-            const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: "1h" });
-            await sendMagicLink(newUser.email, token);
-            console.log("magic link sent");
+            // we dont want to leak if a user exists or not
+            // so we also make an account for them if they dont exist
+            console.log("user not found, creating...");
+            await prisma.$transaction(async (t) => {
+                const newUser = await t.user.create({
+                    data: { email: email, role: "TALENT" }
+                });
+                const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: "1h" });
+                await sendMagicLink(newUser.email, token);
+                console.log("User created and magic link sent");
+            });
+            return res.status(200).json({ message: "check your email to login" });
         }
         catch (e) {
             console.log(e);
+            return res.status(500).json({ message: "internal server error" });
         }
-        return res.status(200).json({ message: "check your email for a magic link" });
     },
     verify: async (req, res) => {
         const { token } = req.query;
@@ -108,6 +103,7 @@ export const authController = {
                 return res.status(401).json({ message: "forbidden" });
         }
         catch (e) {
+            console.log(e);
             return res.status(500).json({ message: "internal server error" });
         }
         return res.status(200).json({ user });

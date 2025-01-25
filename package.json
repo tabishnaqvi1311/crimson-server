@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "npx tsc && nodemon dist/index.js"
+    "dev": "npx tsc && nodemon --env-file=.env dist/index.js"
   },
   "keywords": [],
   "author": "",

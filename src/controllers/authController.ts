@@ -84,46 +84,44 @@ export const authController: AuthController = {
         const { email } = req.body;
         if (!email) return res.status(400).json({ message: "email is required" });
 
-        const user = await prisma.user.findUnique({
-            where: {
-                email: email
-            }
-        })
-        // if user exists, send magic link
-        if (user != null) {
-            try {
+        try {
+
+            const user = await prisma.user.findUnique({
+                where: {
+                    email: email
+                }
+            })
+            // if user exists, send magic link
+            if (user) {
                 const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "1h" });
                 await sendMagicLink(user.email, token);
                 console.log("magic link sent");
                 return res.status(200).json({ message: "check your email for a magic link" });
-            } catch (e) {
-                console.log(e);
-                return res.status(500).json({ message: "internal server error" });
             }
-        }
 
-        // we dont want to leak if a user exists or not
-        // so we also make an account for them if they dont exist
+            // we dont want to leak if a user exists or not
+            // so we also make an account for them if they dont exist
+            console.log("user not found, creating...")
 
+            await prisma.$transaction(async (t) => {
+                const newUser = await t.user.create({
+                    data: { email: email, role: "TALENT" }
+                });
+                const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: "1h" });
+                await sendMagicLink(newUser.email, token);
+                console.log("User created and magic link sent");
+            })
 
-        const newUser = await prisma.user.create({
-            data: {
-                email: email,
-                role: "TALENT",
-            }
-        });
+            return res.status(200).json({ message: "check your email to login" });
 
-        try {
-            const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: "1h" });
-            await sendMagicLink(newUser.email, token);
-            console.log("magic link sent");
         } catch (e) {
-            console.log(e)
+            // we dont wanna create orphans in db
+            // so i rollback user creation if code enters this block
+            console.log(e);
+            return res.status(500).json({ message: "internal server error" });
         }
-
-        return res.status(200).json({ message: "check your email for a magic link" });
     },
-
+    // TODO: something something token blacklisting
     verify: async (req: Request, res: Response) => {
         const { token } = req.query;
         if (!token) return res.status(401).json({ message: "forbidden" });
@@ -136,11 +134,12 @@ export const authController: AuthController = {
                     id: payload.userId
                 }
             })
-            if(!user) return res.status(401).json({ message: "forbidden" });
-        } catch(e){
-            return res.status(500).json({message: "internal server error"});
+            if (!user) return res.status(401).json({ message: "forbidden" });
+        } catch (e) {
+            console.log(e);
+            return res.status(500).json({ message: "internal server error" });
         }
-        
+
         return res.status(200).json({ user });
     }
 }
