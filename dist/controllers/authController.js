@@ -7,29 +7,44 @@ const GOOGLE_OAUTH_URL = process.env.GOOGLE_OAUTH_URL;
 const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_ACCESS_TOKEN_URL = process.env.GOOGLE_ACCESS_TOKEN_URL;
-const JWT_SECRET = "/YtspIchVV6ZzTj7aDhDXQ==";
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = "15m";
+const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
+// BIG TODO: add rate limiting to all routes, especially login
 export const authController = {
     google: async (req, res) => {
         //go to consent screen
-        const url = `${GOOGLE_OAUTH_URL}?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${GOOGLE_CALLBACK_URL}&scope=openid%20email%20profile%20&response_type=code&state=login`;
+        const { role } = req.query;
+        if (!role)
+            return res.status(400).json({ message: "role is required" });
+        //TODO: instead of random, store the role of the user in the state
+        // so we can create a user with chosen role
+        const state = jwt.sign({ role }, JWT_SECRET, { expiresIn: "5m" });
+        const url = `${GOOGLE_OAUTH_URL}?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${GOOGLE_CALLBACK_URL}&scope=openid%20email%20profile%20&response_type=code&state=${state}`;
         return res.status(302).redirect(url);
     },
     callback: async (req, res) => {
-        console.log("callback");
-        if (!GOOGLE_ACCESS_TOKEN_URL) {
-            return res.status(400).json({ message: "google access token url not found" });
+        const { code, state } = req.query;
+        if (!code || !state)
+            return res.status(400).json({ message: "invalid request" });
+        let statePayload = null;
+        //verify state to avoid CSRF
+        try {
+            statePayload = jwt.verify(state, JWT_SECRET);
         }
-        const { code } = req.query;
-        console.log(code);
-        if (!code) {
-            return res.status(400).json({ message: "code not found" });
+        catch (e) {
+            console.log(e);
+            return res.status(400).json({ message: "invalid state" });
         }
+        const role = statePayload.role;
+        if (role !== "TALENT" && role !== "YOUTUBER")
+            return res.status(400).json({ message: "invalid state" });
         const data = {
-            code,
+            code: code,
+            redirect_uri: GOOGLE_CALLBACK_URL,
             client_id: GOOGLE_CLIENT_ID,
             client_secret: GOOGLE_CLIENT_SECRET,
-            redirect_uri: GOOGLE_CALLBACK_URL,
             grant_type: "authorization_code",
         };
         //exchange AUTHORIZATION_CODE for ACCESS_TOKEN
@@ -50,12 +65,31 @@ export const authController = {
         const payload = ticket.getPayload();
         if (!payload)
             return res.status(400).json({ message: "invalid token payload" });
+        const user = await prisma.user.upsert({
+            where: {
+                email: payload.email
+            },
+            update: {
+                name: payload.name,
+                picture: payload.picture
+            },
+            create: {
+                email: payload.email,
+                name: payload.name,
+                picture: payload.picture,
+                role: role
+            }
+        });
+        // TODO: send JWT token to frontend
+        // TODO: add dev and prod urls in .env 
         return res.redirect("http://localhost:5173");
     },
     login: async (req, res) => {
         const { email } = req.body;
         if (!email)
             return res.status(400).json({ message: "email is required" });
+        if (!emailRegex.test(email))
+            return res.status(400).json({ message: "invalid email" });
         try {
             const user = await prisma.user.findUnique({
                 where: {
@@ -64,7 +98,7 @@ export const authController = {
             });
             // if user exists, send magic link
             if (user) {
-                const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "1h" });
+                const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
                 await sendMagicLink(user.email, token);
                 console.log("magic link sent");
                 return res.status(200).json({ message: "check your email for a magic link" });
@@ -76,18 +110,22 @@ export const authController = {
                 const newUser = await t.user.create({
                     data: { email: email, role: "TALENT" }
                 });
-                const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: "1h" });
+                const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
                 await sendMagicLink(newUser.email, token);
                 console.log("User created and magic link sent");
             });
             return res.status(200).json({ message: "check your email to login" });
         }
         catch (e) {
+            // we dont wanna create orphans in db
+            // so i rollback user creation if code enters this block
             console.log(e);
             return res.status(500).json({ message: "internal server error" });
         }
     },
+    // TODO: something something token blacklisting
     verify: async (req, res) => {
+        // TODO: Use Authorization header with Bearer token
         const { token } = req.query;
         if (!token)
             return res.status(401).json({ message: "forbidden" });
