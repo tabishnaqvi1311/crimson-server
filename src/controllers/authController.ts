@@ -3,7 +3,6 @@ import { OAuth2Client } from "google-auth-library"
 import prisma from "../utils/db.js";
 import jwt from 'jsonwebtoken';
 import sendMagicLink from "../utils/sendMagicLink.js";
-
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_OAUTH_URL = process.env.GOOGLE_OAUTH_URL;
 const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL;
@@ -13,6 +12,9 @@ const GOOGLE_ACCESS_TOKEN_URL = process.env.GOOGLE_ACCESS_TOKEN_URL;
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = "15m";
+
+const FRONTEND_ORIGIN_TEST = process.env.FRONTEND_ORIGIN_TEST;
+const FRONTEND_ORIGIN_PROD = process.env.FRONTEND_ORIGIN_PROD;
 
 const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
@@ -25,9 +27,6 @@ interface AuthController {
     login: (req: Request, res: Response) => any,
     verify: (req: Request, res: Response) => any,
 }
-
-
-// BIG TODO: add rate limiting to all routes, especially login
 
 export const authController: AuthController = {
     google: async (req: Request, res: Response) => {
@@ -46,7 +45,7 @@ export const authController: AuthController = {
         if (!code || !state) return res.status(400).json({ message: "invalid request" });
 
         let statePayload = null;
-        //verify state to avoid CSRF
+        //verify state to avoid CSRF while also getting role user enteres
         try {
             statePayload = jwt.verify(state as string, JWT_SECRET as string) as { role: string };
         } catch (e) {
@@ -104,9 +103,11 @@ export const authController: AuthController = {
             }
         })
 
-        // TODO: send JWT token to frontend
+        const token = jwt.sign({ email: payload.email }, JWT_SECRET as string, { expiresIn: "1h" });
+
         // TODO: add dev and prod urls in .env 
-        return res.redirect("http://localhost:5173");
+        //TODO: handle this on client side by clearng URL
+        return res.redirect(FRONTEND_ORIGIN_TEST as string + `/auth-success#token=${token}`);
     },
 
     login: async (req: Request, res: Response) => {
@@ -126,6 +127,7 @@ export const authController: AuthController = {
             })
             // if user exists, send magic link
             if (user) {
+                if(user.role !== role) return res.status(400).json({ message: "invalid role sent" });
                 const token = jwt.sign({ userId: user.id }, JWT_SECRET as string, { expiresIn: JWT_EXPIRES_IN });
                 await sendMagicLink(user.email, token);
                 console.log("magic link sent");
@@ -172,6 +174,6 @@ export const authController: AuthController = {
             return res.status(500).json({ message: "internal server error" });
         }
 
-        return res.status(200).json({ user });
+        return res.redirect(FRONTEND_ORIGIN_TEST as string + `/auth-success#token=${token}`);
     }
 }

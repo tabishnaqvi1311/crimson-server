@@ -5,6 +5,7 @@ import { rateLimit } from 'express-rate-limit';
 import { slowDown } from 'express-slow-down';
 const port = parseInt(process.env.PORT) || 8080;
 const app = express();
+// TODO: make strict other routes like /login 
 const throttler = slowDown({
     windowMs: 15 * 60 * 1000,
     delayAfter: 15,
