@@ -4,9 +4,6 @@ import prisma from "../utils/db.js";
 import jwt from 'jsonwebtoken';
 import sendMagicLink from "../utils/sendMagicLink.js";
 
-import { randomBytes } from "crypto";
-
-
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_OAUTH_URL = process.env.GOOGLE_OAUTH_URL;
 const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL;

@@ -5,6 +5,7 @@ authRouter.get("/google", authController.google);
 authRouter.get("/google/callback", authController.callback);
 authRouter.post("/login", authController.login);
 authRouter.get("/verify", authController.verify);
+authRouter.get("/test", (req, res) => res.send("test"));
 // next steps before we move on to crud 
 // [] make ci/cd pipeline for server
 // [] make sure auth and prisma works in prod 

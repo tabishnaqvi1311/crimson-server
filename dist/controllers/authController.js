@@ -18,8 +18,6 @@ export const authController = {
         const { role } = req.query;
         if (!role)
             return res.status(400).json({ message: "role is required" });
-        //TODO: instead of random, store the role of the user in the state
-        // so we can create a user with chosen role
         const state = jwt.sign({ role }, JWT_SECRET, { expiresIn: "5m" });
         const url = `${GOOGLE_OAUTH_URL}?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${GOOGLE_CALLBACK_URL}&scope=openid%20email%20profile%20&response_type=code&state=${state}`;
         return res.status(302).redirect(url);
@@ -65,7 +63,7 @@ export const authController = {
         const payload = ticket.getPayload();
         if (!payload)
             return res.status(400).json({ message: "invalid token payload" });
-        const user = await prisma.user.upsert({
+        await prisma.user.upsert({
             where: {
                 email: payload.email
             },
@@ -85,9 +83,13 @@ export const authController = {
         return res.redirect("http://localhost:5173");
     },
     login: async (req, res) => {
-        const { email } = req.body;
+        const { email, role } = req.body;
         if (!email)
             return res.status(400).json({ message: "email is required" });
+        if (!role)
+            return res.status(400).json({ message: "role is required" });
+        if (role !== "TALENT" && role !== "YOUTUBER")
+            return res.status(400).json({ message: "invalid role" });
         if (!emailRegex.test(email))
             return res.status(400).json({ message: "invalid email" });
         try {
@@ -107,9 +109,7 @@ export const authController = {
             // so we also make an account for them if they dont exist
             console.log("user not found, creating...");
             await prisma.$transaction(async (t) => {
-                const newUser = await t.user.create({
-                    data: { email: email, role: "TALENT" }
-                });
+                const newUser = await t.user.create({ data: { email, role } });
                 const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
                 await sendMagicLink(newUser.email, token);
                 console.log("User created and magic link sent");
