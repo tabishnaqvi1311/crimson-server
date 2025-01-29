@@ -14,7 +14,7 @@ export default async function sendMagicLink(email, token) {
   <body>
       <p>Hi there, <br /><br />
     We noticed a login attempt to your Crimson account. To continue, please click the button below to verify your identity and log in securely:</p>
-        <a href="http://localhost:8080/auth/verify?token=${token}">
+        <a href="${process.env.SERVER_ORIGIN}/auth/verify?token=${token}">
         Click here to login
     </a>
     <h3>Weren't expecting this email?</h3>
