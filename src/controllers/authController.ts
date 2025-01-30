@@ -12,6 +12,7 @@ const GOOGLE_ACCESS_TOKEN_URL = process.env.GOOGLE_ACCESS_TOKEN_URL;
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = "15m";
+const SESSION_EXPIRES_IN = "7d";
 
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN as string
 
@@ -102,7 +103,7 @@ export const authController: AuthController = {
             }
         })
 
-        const token = jwt.sign({ email: payload.email }, JWT_SECRET as string, { expiresIn: "1h" });
+        const token = jwt.sign({ email: payload.email }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN});
 
         // TODO: add dev and prod urls in .env 
         //TODO: handle this on client side by clearng URL
@@ -173,6 +174,10 @@ export const authController: AuthController = {
             return res.status(500).json({ message: "internal server error" });
         }
 
-        return res.redirect(`${FRONTEND_ORIGIN}/auth-success#token=${token}`);
+        // big issue: we are sending the 15m token to the client
+        // fix: send a new token with a longer expiry
+        const sessionToken = jwt.sign({ userId: user.id }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN });  
+
+        return res.redirect(`${FRONTEND_ORIGIN}/auth-success#token=${sessionToken}`);
     }
 }
