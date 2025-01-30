@@ -87,7 +87,7 @@ export const authController: AuthController = {
         const payload = ticket.getPayload();
         if (!payload) return res.status(400).json({ message: "invalid token payload" });
 
-        await prisma.user.upsert({
+        const user = await prisma.user.upsert({
             where: {
                 email: payload.email as string
             },
@@ -103,7 +103,7 @@ export const authController: AuthController = {
             }
         })
 
-        const token = jwt.sign({ email: payload.email }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN});
+        const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN});
 
         // TODO: add dev and prod urls in .env 
         //TODO: handle this on client side by clearng URL
@@ -176,7 +176,7 @@ export const authController: AuthController = {
 
         // big issue: we are sending the 15m token to the client
         // fix: send a new token with a longer expiry
-        const sessionToken = jwt.sign({ userId: user.id }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN });  
+        const sessionToken = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN });  
 
         return res.redirect(`${FRONTEND_ORIGIN}/auth-success#token=${sessionToken}`);
     }

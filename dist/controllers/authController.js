@@ -9,6 +9,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_ACCESS_TOKEN_URL = process.env.GOOGLE_ACCESS_TOKEN_URL;
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = "15m";
+const SESSION_EXPIRES_IN = "7d";
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
 const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
@@ -63,7 +64,7 @@ export const authController = {
         const payload = ticket.getPayload();
         if (!payload)
             return res.status(400).json({ message: "invalid token payload" });
-        await prisma.user.upsert({
+        const user = await prisma.user.upsert({
             where: {
                 email: payload.email
             },
@@ -78,7 +79,7 @@ export const authController = {
                 role: role
             }
         });
-        const token = jwt.sign({ email: payload.email }, JWT_SECRET, { expiresIn: "1h" });
+        const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: SESSION_EXPIRES_IN });
         // TODO: add dev and prod urls in .env 
         //TODO: handle this on client side by clearng URL
         return res.redirect(`${FRONTEND_ORIGIN}/auth-success#token=${token}`);
@@ -147,6 +148,9 @@ export const authController = {
             console.log(e);
             return res.status(500).json({ message: "internal server error" });
         }
-        return res.redirect(`${FRONTEND_ORIGIN}/auth-success#token=${token}`);
+        // big issue: we are sending the 15m token to the client
+        // fix: send a new token with a longer expiry
+        const sessionToken = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: SESSION_EXPIRES_IN });
+        return res.redirect(`${FRONTEND_ORIGIN}/auth-success#token=${sessionToken}`);
     }
 };
