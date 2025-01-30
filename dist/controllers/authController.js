@@ -9,8 +9,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_ACCESS_TOKEN_URL = process.env.GOOGLE_ACCESS_TOKEN_URL;
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = "15m";
-const FRONTEND_ORIGIN_TEST = process.env.FRONTEND_ORIGIN_TEST;
-const FRONTEND_ORIGIN_PROD = process.env.FRONTEND_ORIGIN_PROD;
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
 const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 export const authController = {
@@ -82,7 +81,7 @@ export const authController = {
         const token = jwt.sign({ email: payload.email }, JWT_SECRET, { expiresIn: "1h" });
         // TODO: add dev and prod urls in .env 
         //TODO: handle this on client side by clearng URL
-        return res.redirect(FRONTEND_ORIGIN_TEST + `/auth-success#token=${token}`);
+        return res.redirect(`${FRONTEND_ORIGIN}/auth-success#token=${token}`);
     },
     login: async (req, res) => {
         const { email, role } = req.body;
@@ -148,6 +147,6 @@ export const authController = {
             console.log(e);
             return res.status(500).json({ message: "internal server error" });
         }
-        return res.redirect(FRONTEND_ORIGIN_TEST + `/auth-success#token=${token}`);
+        return res.redirect(`${FRONTEND_ORIGIN}/auth-success#token=${token}`);
     }
 };
