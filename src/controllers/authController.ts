@@ -3,6 +3,7 @@ import { OAuth2Client } from "google-auth-library"
 import prisma from "../utils/db.js";
 import jwt from 'jsonwebtoken';
 import sendMagicLink from "../utils/sendMagicLink.js";
+import { Payload } from "../types/Payload.js";
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_OAUTH_URL = process.env.GOOGLE_OAUTH_URL;
 const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL;
@@ -156,13 +157,12 @@ export const authController: AuthController = {
     },
     // TODO: something something token blacklisting
     verify: async (req: Request, res: Response) => {
-        // TODO: Use Authorization header with Bearer token
         const { token } = req.query;
         if (!token) return res.status(401).json({ message: "forbidden" });
         let user = null;
 
         try {
-            const payload = jwt.verify(token as string, JWT_SECRET as string) as { userId: string };
+            const payload: Payload = jwt.verify(token as string, JWT_SECRET as string) as Payload;
             user = await prisma.user.findUnique({
                 where: {
                     id: payload.userId

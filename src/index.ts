@@ -3,6 +3,7 @@ import authRouter from './routes/authRoutes.js';
 import cors from 'cors';
 import { rateLimit } from 'express-rate-limit';
 import { slowDown } from 'express-slow-down';
+import userRouter from './routes/userRoutes.js';
 
 const port: number = parseInt(process.env.PORT as string) || 8080;
 const app = express();
@@ -30,7 +31,9 @@ app.use(cors({
     methods: ["GET", "POST"],
     credentials: true,
 }));
+
 app.use("/auth", authRouter);
+app.use("/users", userRouter);
 
 app.listen(port, () => {
     console.log(`server running on http://localhost:${port}`);
