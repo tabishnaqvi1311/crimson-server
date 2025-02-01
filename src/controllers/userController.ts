@@ -17,6 +17,7 @@ export const userController: UserController = {
                     role: role
                 },
                 select: {
+                    id: true,
                     name: true,
                     email: true,
                     picture: true,

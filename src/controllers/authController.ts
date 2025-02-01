@@ -140,7 +140,13 @@ export const authController: AuthController = {
             console.log("user not found, creating...")
 
             await prisma.$transaction(async (t) => {
-                const newUser = await t.user.create({ data: { email, role } });
+                const newUser = await t.user.create({ 
+                    data: {
+                        name: email.split("@")[0],
+                        email, 
+                        role 
+                    } 
+                });
                 const token = jwt.sign({ userId: newUser.id }, JWT_SECRET as string, { expiresIn: JWT_EXPIRES_IN });
                 await sendMagicLink(newUser.email, token);
                 console.log("User created and magic link sent");
