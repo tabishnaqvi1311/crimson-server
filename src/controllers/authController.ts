@@ -128,7 +128,7 @@ export const authController: AuthController = {
             })
             // if user exists, send magic link
             if (user) {
-                if(user.role !== role) return res.status(400).json({ message: "invalid role sent" });
+                // if(user.role !== role) return res.status(400).json({ message: "invalid role sent" });  dont leak if user exists, plus it doesnt matter if they are trying to login as a different role, we just send them a magic link
                 const token = jwt.sign({ userId: user.id }, JWT_SECRET as string, { expiresIn: JWT_EXPIRES_IN });
                 await sendMagicLink(user.email, token);
                 console.log("magic link sent");
