@@ -3,14 +3,20 @@ import { OAuth2Client } from "google-auth-library"
 import prisma from "../utils/db.js";
 import jwt from 'jsonwebtoken';
 import sendMagicLink from "../utils/sendMagicLink.js";
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_OAUTH_URL = process.env.GOOGLE_OAUTH_URL;
-const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL;
+import { Payload } from "../types/Payload.js";
+import { ExchangeBody } from "../types/ExchangeBody.js";
+import exchangeCode from "../utils/exchangeCode.js";
 
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_ACCESS_TOKEN_URL = process.env.GOOGLE_ACCESS_TOKEN_URL;
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const {
+    JWT_SECRET,
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_CALLBACK_URL,
+    GOOGLE_OAUTH_URL,
+} = process.env;
+
+
 const JWT_EXPIRES_IN = "15m";
 const SESSION_EXPIRES_IN = "7d";
 
@@ -40,6 +46,7 @@ export const authController: AuthController = {
         return res.status(302).redirect(url);
     },
     callback: async (req: Request, res: Response) => {
+        // code here is the AUTHORIZATION_CODE
         const { code, state } = req.query;
 
         if (!code || !state) return res.status(400).json({ message: "invalid request" });
@@ -56,24 +63,18 @@ export const authController: AuthController = {
         const role = statePayload.role;
         if (role !== "TALENT" && role !== "YOUTUBER") return res.status(400).json({ message: "invalid state" });
 
-        const data = {
+        const data: ExchangeBody = {
             code: code as string,
-            redirect_uri: GOOGLE_CALLBACK_URL,
-            client_id: GOOGLE_CLIENT_ID,
-            client_secret: GOOGLE_CLIENT_SECRET,
+            redirect_uri: GOOGLE_CALLBACK_URL as string,
+            client_id: GOOGLE_CLIENT_ID as string,
+            client_secret: GOOGLE_CLIENT_SECRET as string,
             grant_type: "authorization_code",
         }
 
-        //exchange AUTHORIZATION_CODE for ACCESS_TOKEN
-
-        const response = await fetch(GOOGLE_ACCESS_TOKEN_URL as string, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(data),
-        });
-        const accessTokenData = await response.json();
+        const accessTokenData = await exchangeCode(data);
+        if(!accessTokenData){
+            return res.status(500).json({ message: "failed exchange" });
+        }
 
         const { id_token } = accessTokenData;
 
@@ -103,7 +104,7 @@ export const authController: AuthController = {
             }
         })
 
-        const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN});
+        const token = jwt.sign({ userId: user.id, role: user.role, picture: user.picture }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN});
 
         // TODO: add dev and prod urls in .env 
         //TODO: handle this on client side by clearng URL
@@ -127,7 +128,6 @@ export const authController: AuthController = {
             })
             // if user exists, send magic link
             if (user) {
-                if(user.role !== role) return res.status(400).json({ message: "invalid role sent" });
                 const token = jwt.sign({ userId: user.id }, JWT_SECRET as string, { expiresIn: JWT_EXPIRES_IN });
                 await sendMagicLink(user.email, token);
                 console.log("magic link sent");
@@ -139,7 +139,13 @@ export const authController: AuthController = {
             console.log("user not found, creating...")
 
             await prisma.$transaction(async (t) => {
-                const newUser = await t.user.create({ data: { email, role } });
+                const newUser = await t.user.create({ 
+                    data: {
+                        name: email.split("@")[0],
+                        email, 
+                        role 
+                    } 
+                });
                 const token = jwt.sign({ userId: newUser.id }, JWT_SECRET as string, { expiresIn: JWT_EXPIRES_IN });
                 await sendMagicLink(newUser.email, token);
                 console.log("User created and magic link sent");
@@ -156,13 +162,12 @@ export const authController: AuthController = {
     },
     // TODO: something something token blacklisting
     verify: async (req: Request, res: Response) => {
-        // TODO: Use Authorization header with Bearer token
         const { token } = req.query;
         if (!token) return res.status(401).json({ message: "forbidden" });
         let user = null;
 
         try {
-            const payload = jwt.verify(token as string, JWT_SECRET as string) as { userId: string };
+            const payload: Payload = jwt.verify(token as string, JWT_SECRET as string) as Payload;
             user = await prisma.user.findUnique({
                 where: {
                     id: payload.userId
@@ -176,7 +181,7 @@ export const authController: AuthController = {
 
         // big issue: we are sending the 15m token to the client
         // fix: send a new token with a longer expiry
-        const sessionToken = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN });  
+        const sessionToken = jwt.sign({ userId: user.id, role: user.role, picture: user.picture }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN });  
 
         return res.redirect(`${FRONTEND_ORIGIN}/auth-success#token=${sessionToken}`);
     }
