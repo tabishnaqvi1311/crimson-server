@@ -23,7 +23,13 @@ const limiter: RateLimitRequestHandler = createRateLimiter({
 })
 
 
-userRouter.get("/:role", isAuthenticated, throttler, limiter, userController.getUsersByRole);
+userRouter.get(
+    "/:role", 
+    isAuthenticated, 
+    throttler, 
+    limiter, 
+    userController.getUsersByRole
+);
 
 // TODO (huge):
 // implement filtering

@@ -4,14 +4,19 @@ import prisma from "../utils/db.js";
 import jwt from 'jsonwebtoken';
 import sendMagicLink from "../utils/sendMagicLink.js";
 import { Payload } from "../types/Payload.js";
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_OAUTH_URL = process.env.GOOGLE_OAUTH_URL;
-const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL;
+import { ExchangeBody } from "../types/ExchangeBody.js";
+import exchangeCode from "../utils/exchangeCode.js";
 
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_ACCESS_TOKEN_URL = process.env.GOOGLE_ACCESS_TOKEN_URL;
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const {
+    JWT_SECRET,
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_CALLBACK_URL,
+    GOOGLE_OAUTH_URL,
+} = process.env;
+
+
 const JWT_EXPIRES_IN = "15m";
 const SESSION_EXPIRES_IN = "7d";
 
@@ -41,6 +46,7 @@ export const authController: AuthController = {
         return res.status(302).redirect(url);
     },
     callback: async (req: Request, res: Response) => {
+        // code here is the AUTHORIZATION_CODE
         const { code, state } = req.query;
 
         if (!code || !state) return res.status(400).json({ message: "invalid request" });
@@ -57,24 +63,18 @@ export const authController: AuthController = {
         const role = statePayload.role;
         if (role !== "TALENT" && role !== "YOUTUBER") return res.status(400).json({ message: "invalid state" });
 
-        const data = {
+        const data: ExchangeBody = {
             code: code as string,
-            redirect_uri: GOOGLE_CALLBACK_URL,
-            client_id: GOOGLE_CLIENT_ID,
-            client_secret: GOOGLE_CLIENT_SECRET,
+            redirect_uri: GOOGLE_CALLBACK_URL as string,
+            client_id: GOOGLE_CLIENT_ID as string,
+            client_secret: GOOGLE_CLIENT_SECRET as string,
             grant_type: "authorization_code",
         }
 
-        //exchange AUTHORIZATION_CODE for ACCESS_TOKEN
-
-        const response = await fetch(GOOGLE_ACCESS_TOKEN_URL as string, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(data),
-        });
-        const accessTokenData = await response.json();
+        const accessTokenData = await exchangeCode(data);
+        if(!accessTokenData){
+            return res.status(500).json({ message: "failed exchange" });
+        }
 
         const { id_token } = accessTokenData;
 
@@ -128,7 +128,6 @@ export const authController: AuthController = {
             })
             // if user exists, send magic link
             if (user) {
-                // if(user.role !== role) return res.status(400).json({ message: "invalid role sent" });  dont leak if user exists, plus it doesnt matter if they are trying to login as a different role, we just send them a magic link
                 const token = jwt.sign({ userId: user.id }, JWT_SECRET as string, { expiresIn: JWT_EXPIRES_IN });
                 await sendMagicLink(user.email, token);
                 console.log("magic link sent");

@@ -1,13 +1,10 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Response } from "express";
 import jwt from 'jsonwebtoken'
 import { Payload } from "../types/Payload.js";
+import { RequestWithUser } from "../types/RequestWithUser.js";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
-interface RequestWithUser extends Request {
-    userId?: string;
-    role?: string;
-}
 
 export default function isAuthenticated(req: RequestWithUser, res: Response, next: NextFunction): any {
     const authHeader = req.headers.authorization;

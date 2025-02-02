@@ -9,13 +9,16 @@ generator client {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  picture   String?
-  role      Role
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  email          String   @unique
+  secondaryEmail String?
+  // incase youtuber verified email !== one used to sign up
+  // doenst matter for talent as they only use email signed w/
+  name           String?
+  picture        String?
+  role           Role
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   postedJobs   Job[]         @relation("PostedJobs")
   applications Application[] @relation("Applications")
@@ -25,16 +28,16 @@ model User {
 }
 
 model YoutuberProfile {
-  id              String  @id @default(cuid())
+  id              String   @id @default(cuid())
   channelName     String
-  youtubeUsername String  @unique
+  youtubeUsername String   @unique
   about           String?
   subscribers     Int?
   views           Int?
   videos          Int?
-
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  youtuberSince   DateTime
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model TalentProfile {
