@@ -17,20 +17,59 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  postedJobs Job[] @relation("PostedJobs")
+  postedJobs   Job[]         @relation("PostedJobs")
   applications Application[] @relation("Applications")
+
+  youtuberProfile YoutuberProfile?
+  talentProfile   TalentProfile?
+}
+
+model YoutuberProfile {
+  id              String  @id @default(cuid())
+  channelName     String
+  youtubeUsername String  @unique
+  about           String?
+  subscribers     Int?
+  views           Int?
+  videos          Int?
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TalentProfile {
+  id           String       @id @default(cuid())
+  about        String?
+  rate         Int
+  workLocation WorkLocation
+  workType     WorkType
+  topSkill     String
+  skills       String[]
+  location     String
+  experience   String?
+  languages    String[]
+  categories   String[]
+  clients      String[]
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Job {
-  id          String    @id @default(cuid())
-  title       String
-  description String
-  pay         Int
-  status      JobStatus @default(OPEN)
+  id           String       @id @default(cuid())
+  title        String
+  description  String
+  salary       Int
+  workLocation WorkLocation
+  workType     WorkType
+  status       JobStatus    @default(OPEN)
+  categories   String[]
 
-  posterId String
-  poster   User   @relation("PostedJobs", fields: [posterId], references: [id])
+  posterId     String
+  poster       User          @relation("PostedJobs", fields: [posterId], references: [id], onDelete: Cascade)
   applications Application[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Application {
@@ -41,9 +80,21 @@ model Application {
   updatedAt   DateTime          @updatedAt
 
   applicantId String
-  applicant   User   @relation("Applications", fields: [applicantId], references: [id])
+  applicant   User   @relation("Applications", fields: [applicantId], references: [id], onDelete: Cascade)
   jobId       String
-  job         Job    @relation(fields: [jobId], references: [id])
+  job         Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+enum WorkLocation {
+  REMOTE
+  ONSITE
+  HYBRID
+}
+
+enum WorkType {
+  FULL_TIME
+  PART_TIME
+  PROJECT_BASED
 }
 
 enum Role {
@@ -55,6 +106,7 @@ enum JobStatus {
   DRAFT
   OPEN
   CLOSED
+  EXPIRED
 }
 
 enum ApplicationStatus {
