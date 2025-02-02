@@ -5,6 +5,7 @@ import createThrottler from "../middleware/throttler.js";
 import { SlowDownRequestHandler } from "express-slow-down";
 import { RateLimitRequestHandler } from "express-rate-limit";
 import createRateLimiter from "../middleware/rateLimiter.js";
+import isAuthorized from "../middleware/isAuthorized.js";
 
 const userRouter = Router();
 
@@ -22,6 +23,22 @@ const limiter: RateLimitRequestHandler = createRateLimiter({
     legacyHeaders: false,
 })
 
+userRouter.get(
+    "/verified",
+    isAuthenticated,
+    isAuthorized("YOUTUBER"),
+    throttler,
+    limiter,
+    userController.getYoutuberVerifedStatus
+)
+userRouter.get(
+    "/:id",
+    isAuthenticated,
+    throttler,
+    limiter,
+    userController.getUserById
+)
+
 
 userRouter.get(
     "/:role", 
@@ -30,6 +47,7 @@ userRouter.get(
     limiter, 
     userController.getUsersByRole
 );
+
 
 // TODO (huge):
 // implement filtering

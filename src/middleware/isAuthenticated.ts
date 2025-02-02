@@ -19,7 +19,7 @@ export default function isAuthenticated(req: RequestWithUser, res: Response, nex
 
         const { role, userId } = decoded as Payload;
         if (!role || !userId) return res.status(403).json({ message: "forbidden" });
-
+        
         req.userId = userId;
         req.role = role;
         next();
