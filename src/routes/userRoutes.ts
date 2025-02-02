@@ -41,7 +41,7 @@ userRouter.get(
 
 
 userRouter.get(
-    "/:role", 
+    "/roles/:role", 
     isAuthenticated, 
     throttler, 
     limiter, 
