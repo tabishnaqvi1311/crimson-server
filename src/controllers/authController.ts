@@ -24,7 +24,7 @@ const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN as string
 
 const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-
+// big todo: use cookies
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 interface AuthController {
@@ -101,10 +101,20 @@ export const authController: AuthController = {
                 name: payload.name as string,
                 picture: payload.picture as string,
                 role: role
+            },
+            include: {
+                youtuberProfile: true,
             }
         })
 
-        const token = jwt.sign({ userId: user.id, role: user.role, picture: user.picture }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN});
+        const isVerified = user.youtuberProfile !== null // we can check for role in frontend anyways
+
+        const token = jwt.sign({ 
+            userId: user.id, 
+            role: user.role, 
+            picture: user.picture,
+            isVerified
+        }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN});
 
         // TODO: add dev and prod urls in .env 
         //TODO: handle this on client side by clearng URL
@@ -136,7 +146,7 @@ export const authController: AuthController = {
 
             // we dont want to leak if a user exists or not
             // so we also make an account for them if they dont exist
-            console.log("user not found, creating...")
+            // console.log("user not found, creating...")
 
             await prisma.$transaction(async (t) => {
                 const newUser = await t.user.create({ 
@@ -148,7 +158,7 @@ export const authController: AuthController = {
                 });
                 const token = jwt.sign({ userId: newUser.id }, JWT_SECRET as string, { expiresIn: JWT_EXPIRES_IN });
                 await sendMagicLink(newUser.email, token);
-                console.log("User created and magic link sent");
+                // console.log("User created and magic link sent");
             })
 
             return res.status(200).json({ message: "check your email to login" });
@@ -171,6 +181,9 @@ export const authController: AuthController = {
             user = await prisma.user.findUnique({
                 where: {
                     id: payload.userId
+                },
+                include: {
+                    youtuberProfile: true
                 }
             })
             if (!user) return res.status(401).json({ message: "forbidden" });
@@ -179,9 +192,16 @@ export const authController: AuthController = {
             return res.status(500).json({ message: "internal server error" });
         }
 
+        const isVerified = user.youtuberProfile !== null
+
         // big issue: we are sending the 15m token to the client
         // fix: send a new token with a longer expiry
-        const sessionToken = jwt.sign({ userId: user.id, role: user.role, picture: user.picture }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN });  
+        const sessionToken = jwt.sign({ 
+            userId: user.id, 
+            role: user.role, 
+            picture: user.picture,
+            isVerified
+        }, JWT_SECRET as string, { expiresIn: SESSION_EXPIRES_IN });  
 
         return res.redirect(`${FRONTEND_ORIGIN}/auth-success#token=${sessionToken}`);
     }
