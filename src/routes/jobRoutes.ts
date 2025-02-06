@@ -58,7 +58,7 @@ jobRouter.post(
 );
 
 jobRouter.put(
-    "/:id", 
+    "/update/:id", 
     isAuthenticated, 
     isAuthorized("YOUTUBER"), 
     throttler,
@@ -67,7 +67,7 @@ jobRouter.put(
 );
 
 jobRouter.delete(
-    "/:id", 
+    "/delete/:id", 
     isAuthenticated, 
     isAuthorized("YOUTUBER"), 
     throttler,

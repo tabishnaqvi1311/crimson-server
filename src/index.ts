@@ -1,3 +1,5 @@
+// TODO: add zod for validation
+
 import express from 'express';
 import authRouter from './routes/authRoutes.js';
 import cors from 'cors';
@@ -12,7 +14,7 @@ const app = express();
 app.use(express.json());
 app.use(cors({
     origin: process.env.FRONTEND_ORIGIN,
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
 }));
 
