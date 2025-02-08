@@ -151,10 +151,15 @@ export const jobController: JobController = {
         }
 
         const user = await prisma.user.findUnique({
-            where: { id: id }
+            where: { id: id }, include: { youtuberProfile: true }
         })
 
         if (!user) return res.status(400).json({ message: "invalid request" });
+
+        // added verification check also do in frontend ->
+        if (user.youtuberProfile === null) {
+            return res.status(400).json({ message: "not verified" });
+        }
 
         try {
             const job = await prisma.job.create({
@@ -201,11 +206,11 @@ export const jobController: JobController = {
         if (!Object.values(WorkLocation).includes(workLocation as WorkLocation)) {
             return res.status(400).json({ message: "invalid request" });
         }
-        
+
         if (!Object.values(WorkType).includes(workType as WorkType)) {
             return res.status(400).json({ message: "invalid request" });
         }
-        
+
         if (!Object.values(JobStatus).includes(status as JobStatus)) {
             return res.status(400).json({ message: "invalid request" });
         }
