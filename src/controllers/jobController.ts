@@ -138,7 +138,7 @@ export const jobController: JobController = {
         const { title, description, salary, workLocation, workType } = req.body;
         const id = req.userId;
 
-        if (!title || !description || !salary || !workLocation || !workType) {
+        if (!title || !workLocation || !workType) {
             return res.status(400).json({ message: "invalid request" });
         }
 
@@ -166,7 +166,7 @@ export const jobController: JobController = {
                 data: {
                     title,
                     description,
-                    salary: parseInt(salary),
+                    salary: salary.length === 0 ? "-" : salary,
                     workLocation: workLocation,
                     workType,
                     poster: {
@@ -222,7 +222,7 @@ export const jobController: JobController = {
                 data: {
                     title,
                     description,
-                    salary: parseInt(salary),
+                    salary,
                     workLocation,
                     workType,
                     status,
