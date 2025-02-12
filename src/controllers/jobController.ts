@@ -41,6 +41,8 @@ export const jobController: JobController = {
                     id: true,
                     title: true,
                     salary: true,
+                    workLocation: true,
+                    workType: true,
                     createdAt: true,
                     poster: {
                         select: {
