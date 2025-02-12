@@ -41,6 +41,8 @@ export const jobController: JobController = {
                     id: true,
                     title: true,
                     salary: true,
+                    workLocation: true,
+                    workType: true,
                     createdAt: true,
                     poster: {
                         select: {
@@ -138,7 +140,7 @@ export const jobController: JobController = {
         const { title, description, salary, workLocation, workType } = req.body;
         const id = req.userId;
 
-        if (!title || !description || !salary || !workLocation || !workType) {
+        if (!title || !workLocation || !workType) {
             return res.status(400).json({ message: "invalid request" });
         }
 
@@ -151,17 +153,22 @@ export const jobController: JobController = {
         }
 
         const user = await prisma.user.findUnique({
-            where: { id: id }
+            where: { id: id }, include: { youtuberProfile: true }
         })
 
         if (!user) return res.status(400).json({ message: "invalid request" });
+
+        // added verification check also do in frontend ->
+        if (user.youtuberProfile === null) {
+            return res.status(400).json({ message: "not verified" });
+        }
 
         try {
             const job = await prisma.job.create({
                 data: {
                     title,
                     description,
-                    salary: parseInt(salary),
+                    salary: salary.length === 0 ? "-" : salary,
                     workLocation: workLocation,
                     workType,
                     poster: {
@@ -201,11 +208,11 @@ export const jobController: JobController = {
         if (!Object.values(WorkLocation).includes(workLocation as WorkLocation)) {
             return res.status(400).json({ message: "invalid request" });
         }
-        
+
         if (!Object.values(WorkType).includes(workType as WorkType)) {
             return res.status(400).json({ message: "invalid request" });
         }
-        
+
         if (!Object.values(JobStatus).includes(status as JobStatus)) {
             return res.status(400).json({ message: "invalid request" });
         }
@@ -217,7 +224,7 @@ export const jobController: JobController = {
                 data: {
                     title,
                     description,
-                    salary: parseInt(salary),
+                    salary,
                     workLocation,
                     workType,
                     status,
