@@ -5,6 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "compile": "sh ./scripts/compile.sh",
     "dev": "npx tsc && nodemon --env-file=.env dist/index.js"
   },
   "keywords": [],
