@@ -42,7 +42,9 @@ export const jobController: JobController = {
                     title: true,
                     salary: true,
                     workLocation: true,
+                    description: true,
                     workType: true,
+                    status: true,
                     createdAt: true,
                     poster: {
                         select: {
@@ -120,8 +122,11 @@ export const jobController: JobController = {
                     posterId: id
                 },
                 select: {
+                    id: true,
                     title: true,
                     description: true,
+                    workLocation: true,
+                    workType: true,
                     salary: true,
                     createdAt: true,
                     status: true

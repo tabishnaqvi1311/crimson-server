@@ -6,6 +6,7 @@ import cors from 'cors';
 import userRouter from './routes/userRoutes.js';
 import verificationRouter from './routes/verificationRoutes.js';
 import jobRouter from './routes/jobRoutes.js';
+import chalk from 'chalk';
 
 const port: number = parseInt(process.env.PORT as string) || 8080;
 const app = express();
@@ -17,6 +18,21 @@ app.use(cors({
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
 }));
+
+app.use((req, res, next) => {
+    const start = Date.now();
+
+    res.on('finish', () => { 
+        const duration = Date.now() - start;
+        const statusColor = res.statusCode >= 500 
+                            ? chalk.redBright : res.statusCode >= 400 
+                            ? chalk.yellowBright : res.statusCode >= 300 
+                            ? chalk.cyanBright : chalk.greenBright;
+        console.log(`${req.method} ${req.originalUrl} → ${statusColor(res.statusCode)} in (${duration}ms)`);
+    });
+
+    next();
+});
 
 app.use("/auth", authRouter);
 app.use("/users", userRouter);
