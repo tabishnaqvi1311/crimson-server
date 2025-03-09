@@ -36,6 +36,7 @@ model YoutuberProfile {
   views           Int?
   videos          Int?
   youtuberSince   DateTime
+  createdAt       DateTime @default(now())
   userId          String   @unique
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -53,6 +54,7 @@ model TalentProfile {
   languages    String[]
   categories   String[]
   clients      String[]
+  createdAt    DateTime     @default(now())
 
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

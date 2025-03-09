@@ -24,6 +24,14 @@ const limiter: RateLimitRequestHandler = createRateLimiter({
 })
 
 userRouter.get(
+    "/me",
+    isAuthenticated,
+    throttler,
+    limiter,
+    userController.getCurrentProfile
+)
+
+userRouter.get(
     "/verified",
     isAuthenticated,
     isAuthorized("YOUTUBER"),
@@ -37,6 +45,23 @@ userRouter.get(
     throttler,
     limiter,
     userController.getUserById
+)
+
+userRouter.get(
+    "/profile/youtuber/:id",
+    isAuthenticated,
+    // isAuthorized("YOUTUBER"),
+    throttler,
+    limiter,
+    userController.getYoutuberProfileById
+)
+userRouter.get(
+    "/profile/talent/:id",
+    isAuthenticated,
+    // isAuthorized("TALENT"),
+    throttler,
+    limiter,
+    userController.getTalentProfileById
 )
 
 

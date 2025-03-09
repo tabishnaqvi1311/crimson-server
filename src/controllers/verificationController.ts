@@ -90,7 +90,12 @@ export const verificationController: VerificationController = {
 
         if (user.youtuberProfile){
             return res.status(302).redirect(`${FRONTEND_ORIGIN}/profile#success`);
-        } 
+        }
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { picture: payload.picture }
+        });
 
         if (user.email !== emailInPayload) {
             await prisma.user.update({
@@ -114,23 +119,28 @@ export const verificationController: VerificationController = {
         const { subscriberCount, viewCount, videoCount } = statistics;
 
         const publishedAtDate = new Date(publishedAt);
+        try {
 
-        await prisma.youtuberProfile.create({
-            data: {
-                channelName: title,
-                about: description,
-                youtubeUsername: customUrl,
-                youtuberSince: publishedAtDate,
-                subscribers: parseInt(subscriberCount),
-                views: parseInt(viewCount),
-                videos: parseInt(videoCount),
-                user: {
-                    connect: {
-                        id: userId
+            await prisma.youtuberProfile.create({
+                data: {
+                    channelName: title,
+                    about: description,
+                    youtubeUsername: customUrl,
+                    youtuberSince: publishedAtDate,
+                    subscribers: parseInt(subscriberCount),
+                    views: parseInt(viewCount),
+                    videos: parseInt(videoCount),
+                    user: {
+                        connect: {
+                            id: userId
+                        }
                     }
                 }
-            }
-        });
+            });
+        } catch (e) {
+            console.log(e);
+            return res.status(500).redirect(`${FRONTEND_ORIGIN}/profile#failed`);
+        }
 
         return res.status(302).redirect(`${FRONTEND_ORIGIN}/profile#success`);
     }
