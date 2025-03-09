@@ -6,14 +6,17 @@ interface UserController {
     getUsersByRole: (req: RequestWithUser, res: Response) => any;
     getYoutuberVerifedStatus: (req: RequestWithUser, res: Response) => any;
     getUserById: (req: Request, res: Response) => any;
+    getCurrentProfile: (req: RequestWithUser, res: Response) => any;
+    getYoutuberProfileById: (req: RequestWithUser, res: Response) => any;
+    getTalentProfileById: (req: RequestWithUser, res: Response) => any;
 }
 
 export const userController: UserController = {
 
-    getUserById: async(req: RequestWithUser, res: Response) => {
+    getUserById: async (req: RequestWithUser, res: Response) => {
         const id = req.params.id;
-        
-        try{
+
+        try {
             const user = await prisma.user.findUnique({
                 where: {
                     id: id
@@ -25,18 +28,152 @@ export const userController: UserController = {
                     picture: true,
                 }
             })
-            if(!user) return res.status(404).json({ message: 'user not found' });
+            if (!user) return res.status(404).json({ message: 'user not found' });
             return res.status(200).json({ user });
-        } catch(e) {
+        } catch (e) {
             console.log(e);
             return res.status(500).json({ message: 'internal server error' });
         }
     },
 
-    getYoutuberVerifedStatus: async(req: RequestWithUser, res: Response) => {
+    getCurrentProfile: async (req: RequestWithUser, res: Response) => {
+        const id = req.userId;
+        let user = null;
+
+        try {
+            if(req.role === "YOUTUBER"){
+                user = await prisma.user.findUnique({
+                    where: { id: id },
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        picture: true,
+                        youtuberProfile: {
+                            select: {
+                                id: true,
+                                youtubeUsername: true,
+                                youtuberSince: true,
+                                channelName: true,
+                                about: true,
+                                subscribers: true,
+                                views: true,
+                                videos: true,
+                            }
+                        }
+                    }
+                })
+            } else if(req.role === "TALENT"){
+                user = await prisma.user.findUnique({
+                    where: { id: id },
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        picture: true,
+                        talentProfile: {
+                            select: {
+                                id: true,
+                                about: true,
+                                rate: true,
+                                workLocation: true,
+                                workType: true,
+                                topSkill: true,
+                                skills: true,
+                                experience: true,
+                                location: true,
+                                languages: true,
+                                categories: true,
+                                clients: true,
+                            }
+                        }
+                    }
+                })
+            }
+            else return res.status(400).json({message: "invalid role"});
+        } catch(e){
+            console.log(e);
+            return res.status(500).json({message: "internal server error"})
+        }
+
+        if (!user) return res.status(404).json({ message: 'user not found' });
+        return res.status(200).json({ user });
+    },
+
+    getYoutuberProfileById: async (req: RequestWithUser, res: Response) => {
+        const id = req.params.id;
+
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: id },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    picture: true,
+                    youtuberProfile: {
+                        select: {
+                            id: true,
+                            youtubeUsername: true,
+                            youtuberSince: true,
+                            channelName: true,
+                            about: true,
+                            subscribers: true,
+                            views: true,
+                            videos: true,
+                        }
+                    }
+                }
+            })
+            if (!user) return res.status(404).json({ message: 'user not found' });
+            return res.status(200).json({ user });
+        } catch (e) {
+            console.log(e);
+            return res.status(500).json({ message: 'internal server error' });
+        }
+    },
+
+    getTalentProfileById: async (req: RequestWithUser, res: Response) => {
+        const id = req.params.id;
+
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: id },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    picture: true,
+                    talentProfile: {
+                        select: {
+                            id: true,
+                            about: true,
+                            rate: true,
+                            workLocation: true,
+                            workType: true,
+                            topSkill: true,
+                            skills: true,
+                            experience: true,
+                            location: true,
+                            languages: true,
+                            categories: true,
+                            clients: true,
+                        }
+                    }
+                }
+            })
+            if (!user) return res.status(404).json({ message: 'user not found' });
+            return res.status(200).json({ user });
+        } catch (e) {
+            console.log(e);
+            return res.status(500).json({ message: 'internal server error' });
+        }
+    },
+
+    getYoutuberVerifedStatus: async (req: RequestWithUser, res: Response) => {
         const id = req.userId;
 
-        try{
+        try {
             const user = await prisma.user.findUnique({
                 where: {
                     id: id
@@ -45,10 +182,10 @@ export const userController: UserController = {
                     youtuberProfile: true
                 }
             })
-            if(!user) return res.status(404).json({ message: 'user not found' });
+            if (!user) return res.status(404).json({ message: 'user not found' });
             const isVerified: boolean = user.youtuberProfile !== null;
             return res.status(200).json({ isVerified });
-        } catch(e) {
+        } catch (e) {
             console.log(e);
             return res.status(500).json({ message: 'internal server error' });
         }
