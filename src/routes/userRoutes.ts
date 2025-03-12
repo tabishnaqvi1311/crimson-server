@@ -73,6 +73,14 @@ userRouter.get(
     userController.getUsersByRole
 );
 
+userRouter.delete(
+    "/delete/:id",
+    isAuthenticated,
+    throttler,
+    limiter,
+    userController.deleteUser
+)
+
 
 // TODO (huge):
 // implement filtering

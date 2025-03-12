@@ -9,6 +9,7 @@ interface UserController {
     getCurrentProfile: (req: RequestWithUser, res: Response) => any;
     getYoutuberProfileById: (req: RequestWithUser, res: Response) => any;
     getTalentProfileById: (req: RequestWithUser, res: Response) => any;
+    deleteUser: (req: RequestWithUser, res: Response) => any
 }
 
 export const userController: UserController = {
@@ -41,7 +42,7 @@ export const userController: UserController = {
         let user = null;
 
         try {
-            if(req.role === "YOUTUBER"){
+            if (req.role === "YOUTUBER") {
                 user = await prisma.user.findUnique({
                     where: { id: id },
                     select: {
@@ -63,7 +64,7 @@ export const userController: UserController = {
                         }
                     }
                 })
-            } else if(req.role === "TALENT"){
+            } else if (req.role === "TALENT") {
                 user = await prisma.user.findUnique({
                     where: { id: id },
                     select: {
@@ -90,10 +91,10 @@ export const userController: UserController = {
                     }
                 })
             }
-            else return res.status(400).json({message: "invalid role"});
-        } catch(e){
+            else return res.status(400).json({ message: "invalid role" });
+        } catch (e) {
             console.log(e);
-            return res.status(500).json({message: "internal server error"})
+            return res.status(500).json({ message: "internal server error" })
         }
 
         if (!user) return res.status(404).json({ message: 'user not found' });
@@ -214,5 +215,20 @@ export const userController: UserController = {
             console.log(e);
             return res.status(500).json({ message: 'internal server error' });
         }
+    },
+
+    deleteUser: async (req: RequestWithUser, res: Response) => {
+        const id = req.params.id;
+        if (!id) return res.status(400).json({ "message": "invalid request" });
+
+        const userId = req.userId;
+        if (userId !== id) return res.status(403).json({ 'message': "forbidden" });
+
+        const user = await prisma.user.findUnique({where: {id : id}});
+        if(!user) return res.status(404).json({"message": "user not found"});
+
+        await prisma.user.delete({ where: { id: id } });
+
+        return res.status(200).json({ "message": "success" });
     }
 }
