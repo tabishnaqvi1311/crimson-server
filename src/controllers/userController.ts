@@ -61,8 +61,11 @@ export const userController: UserController = {
                                 views: true,
                                 videos: true,
                             }
-                        }
-                    }
+                        },
+                        postedJobs: { take: 3, orderBy: {
+                            createdAt: "desc"
+                        } }
+                    },
                 })
             } else if (req.role === "TALENT") {
                 user = await prisma.user.findUnique({
@@ -123,7 +126,10 @@ export const userController: UserController = {
                             views: true,
                             videos: true,
                         }
-                    }
+                    },
+                    postedJobs: { take: 3, where: { status: "OPEN" }, orderBy: {
+                        createdAt: "desc"
+                    } }
                 }
             })
             if (!user) return res.status(404).json({ message: 'user not found' });
