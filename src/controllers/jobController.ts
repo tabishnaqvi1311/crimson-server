@@ -107,6 +107,7 @@ export const jobController: JobController = {
     },
     getJobsByYoutuberId: async (req: Request, res: Response) => {
         const { id } = req.params;
+        const { location, type, status, sort } = req.query;
 
         const user = await prisma.user.findUnique({
             where: { id: id }, select: { role: true }
@@ -116,11 +117,17 @@ export const jobController: JobController = {
             return res.status(400).json({ message: "invalid request" });
         }
 
+        const whereClause: any = { posterId: id }
+        if (location) whereClause.workLocation = location;
+        if (type) whereClause.workType = type;
+        if (status) whereClause.status = status;
+
+        const orderBy: any = { createdAt: "desc" };
+        if(sort === "OLDEST") orderBy.createdAt = "asc";
+
         try {
             const jobs = await prisma.job.findMany({
-                where: {
-                    posterId: id
-                },
+                where: whereClause,
                 select: {
                     id: true,
                     title: true,
@@ -130,15 +137,14 @@ export const jobController: JobController = {
                     salary: true,
                     createdAt: true,
                     status: true
-                }
+                },
+                orderBy
             })
             return res.status(200).json({ jobs });
         } catch (e) {
             console.log(e);
             return res.status(500).json({ message: "internal server error" });
         }
-
-
     },
     createJob: async (req: RequestWithUser, res: Response) => {
         // TODO: take care of payments per post
