@@ -32,11 +32,18 @@ interface JobController {
 
 export const jobController: JobController = {
     getAllJobs: async (req: Request, res: Response) => {
+
+        const {location, type} = req.query;
+
+        const whereClause: any = {
+            status: "OPEN"
+        }
+        if(location) whereClause.workLocation = location;
+        if(type) whereClause.workType = type;
+
         try {
             const jobs = await prisma.job.findMany({
-                where: {
-                    status: "OPEN"
-                },
+                where: whereClause,
                 select: {
                     id: true,
                     title: true,
@@ -58,8 +65,11 @@ export const jobController: JobController = {
                                 }
                             }
                         }
-                    }
+                    },
                 },
+                orderBy: {
+                    createdAt: "desc"
+                }
             })
             return res.status(200).json({ jobs });
         } catch (e) {
