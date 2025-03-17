@@ -32,11 +32,24 @@ interface JobController {
 
 export const jobController: JobController = {
     getAllJobs: async (req: Request, res: Response) => {
+
+        const {location, type, cursor, limit=10} = req.query;
+
+        const whereClause: any = {
+            status: "OPEN"
+        }
+        if(location) whereClause.workLocation = location;
+        if(type) whereClause.workType = type;
+        if (cursor) {
+            whereClause.createdAt = {
+                lt: new Date(cursor as string)
+            };
+        }
+
         try {
             const jobs = await prisma.job.findMany({
-                where: {
-                    status: "OPEN"
-                },
+                where: whereClause,
+                take: Number(limit),
                 select: {
                     id: true,
                     title: true,
@@ -58,10 +71,14 @@ export const jobController: JobController = {
                                 }
                             }
                         }
-                    }
+                    },
                 },
+                orderBy: {
+                    createdAt: "desc"
+                }
             })
-            return res.status(200).json({ jobs });
+            const nextCursor = jobs.length > 0 ? jobs[jobs.length - 1].createdAt.toISOString() : null;
+            return res.status(200).json({ jobs, nextCursor });
         } catch (e) {
             console.log(e);
             res.status(500).send({ message: "internal server error" });
