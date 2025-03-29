@@ -7,6 +7,7 @@ import userRouter from './routes/userRoutes.js';
 import verificationRouter from './routes/verificationRoutes.js';
 import jobRouter from './routes/jobRoutes.js';
 import chalk from 'chalk';
+import applicationRouter from './routes/applicationRoutes.js';
 
 const port: number = parseInt(process.env.PORT as string) || 8080;
 const app = express();
@@ -38,6 +39,7 @@ app.use("/auth", authRouter);
 app.use("/users", userRouter);
 app.use("/v", verificationRouter);
 app.use("/job", jobRouter);
+app.use("/application", applicationRouter);
 
 app.listen(port, () => {
     console.log(`server running on http://localhost:${port}`);
