@@ -32,11 +32,20 @@ export const applicationController: ApplicationController = {
         const { id } = req.params;
         if (!id) return res.status(400).json({ message: "invalid request" });
 
+        const { status, sort } = req.query;
+
+        const whereClause: any = {}
+        if (status) whereClause.status = status;
+
+        const orderBy: any = { createdAt: "desc" };
+        if (sort === "OLDEST") orderBy.createdAt = "asc";
+
         try {
             const userWithApplications = await prisma.user.findUnique({
                 where: { id: id },
                 select: {
                     applications: {
+                        where: whereClause,
                         select: {
                             id: true,
                             coverLetter: true,
@@ -54,8 +63,9 @@ export const applicationController: ApplicationController = {
                                     }
                                 }
                             }
-                        }
-                    }
+                        },
+                        orderBy,
+                    },
                 },
             })
             if (!userWithApplications) return res.status(404).json({ message: "not found" });
@@ -95,9 +105,9 @@ export const applicationController: ApplicationController = {
             const job = await prisma.job.findUnique({ where: { id: id } });
             if (!job) return res.status(404).json({ message: "not found" });
 
-            if(job.status !== "OPEN") return res.status(400).json({ message: "job is not open" });
+            if (job.status !== "OPEN") return res.status(400).json({ message: "job is not open" });
 
-            
+
             const user = await prisma.user.findUnique({
                 where: { id: userId },
                 select: {
@@ -114,8 +124,8 @@ export const applicationController: ApplicationController = {
                     }
                 }
             });
-            
-            
+
+
             if (!user) return res.status(404).json({ message: "not found" });
             if (!user.talentProfile
                 || !user.talentProfile.rate
@@ -127,7 +137,7 @@ export const applicationController: ApplicationController = {
                 || !user.talentProfile.skills) {
                 return res.status(400).json({ message: "incomplete profile" });
             }
-            
+
             // user can only apply once for a job
             const existingApplication = await prisma.application.findFirst({
                 where: {
@@ -136,7 +146,7 @@ export const applicationController: ApplicationController = {
                 }
             })
             if (existingApplication) return res.status(400).json({ message: "already applied" });
-                
+
             const application = await prisma.application.create({
                 data: {
                     coverLetter,
