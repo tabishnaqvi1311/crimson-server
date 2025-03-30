@@ -22,7 +22,7 @@ enum JobStatus {
     EXPIRED = "EXPIRED"
 }
 interface JobController {
-    getAllJobs: (req: Request, res: Response) => void;
+    getAllJobs: (req: RequestWithUser, res: Response) => void;
     getJobById: (req: Request, res: Response) => void;
     getJobsByYoutuberId: (req: Request, res: Response) => void;
     createJob: (req: RequestWithUser, res: Response) => void;
@@ -31,15 +31,15 @@ interface JobController {
 }
 
 export const jobController: JobController = {
-    getAllJobs: async (req: Request, res: Response) => {
+    getAllJobs: async (req: RequestWithUser, res: Response) => {
 
-        const {location, type, cursor, limit=10} = req.query;
+        const { location, type, cursor, limit = 10 } = req.query;
 
         const whereClause: any = {
             status: "OPEN"
         }
-        if(location) whereClause.workLocation = location;
-        if(type) whereClause.workType = type;
+        if (location) whereClause.workLocation = location;
+        if (type) whereClause.workType = type;
         if (cursor) {
             whereClause.createdAt = {
                 lt: new Date(cursor as string)
@@ -72,6 +72,7 @@ export const jobController: JobController = {
                             }
                         }
                     },
+                    applications: { where: { applicantId: req.userId }, select: { id: true } }
                 },
                 orderBy: {
                     createdAt: "desc"
@@ -140,7 +141,7 @@ export const jobController: JobController = {
         if (status) whereClause.status = status;
 
         const orderBy: any = { createdAt: "desc" };
-        if(sort === "OLDEST") orderBy.createdAt = "asc";
+        if (sort === "OLDEST") orderBy.createdAt = "asc";
 
         try {
             const jobs = await prisma.job.findMany({
