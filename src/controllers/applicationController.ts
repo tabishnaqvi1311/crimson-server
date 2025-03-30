@@ -35,7 +35,28 @@ export const applicationController: ApplicationController = {
         try {
             const userWithApplications = await prisma.user.findUnique({
                 where: { id: id },
-                include: { applications: true }
+                select: {
+                    applications: {
+                        select: {
+                            id: true,
+                            coverLetter: true,
+                            status: true,
+                            createdAt: true,
+                            job: {
+                                select: {
+                                    title: true,
+                                    poster: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                            picture: true,
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
             })
             if (!userWithApplications) return res.status(404).json({ message: "not found" });
             return res.status(200).json({ applications: userWithApplications.applications })
