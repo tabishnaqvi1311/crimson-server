@@ -19,6 +19,7 @@
     "express-rate-limit": "^7.5.0",
     "express-slow-down": "^2.0.3",
     "google-auth-library": "^9.15.0",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "resend": "^4.1.1",
     "validator": "^13.12.0"
