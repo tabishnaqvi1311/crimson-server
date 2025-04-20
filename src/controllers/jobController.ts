@@ -72,7 +72,7 @@ export const jobController: JobController = {
                             }
                         }
                     },
-                    applications: { where: { applicantId: req.userId }, select: { id: true } }
+                    applications: { where: { applicantId: req.user?.userId }, select: { id: true } }
                 },
                 orderBy: {
                     createdAt: "desc"
@@ -167,7 +167,7 @@ export const jobController: JobController = {
     createJob: async (req: RequestWithUser, res: Response) => {
         // TODO: take care of payments per post
         const { title, description, salary, workLocation, workType } = req.body;
-        const id = req.userId;
+        const id = req.user?.userId;
 
         if (!title || !workLocation || !workType) {
             return res.status(400).json({ message: "invalid request" });
@@ -229,7 +229,7 @@ export const jobController: JobController = {
 
         if (!job) return res.status(404).json({ message: 'job not found' });
 
-        if (job.posterId !== req.userId) {
+        if (job.posterId !== req.user?.userId) {
             return res.status(400).json({ message: "invalid request" });
         }
 
@@ -283,7 +283,7 @@ export const jobController: JobController = {
         const { id } = req.params;
 
         const user = await prisma.user.findUnique({
-            where: { id: req.userId }
+            where: { id: req.user?.userId }
         })
 
         if (!user || user.role !== "YOUTUBER") {

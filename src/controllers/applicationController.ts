@@ -11,6 +11,18 @@ interface ApplicationController {
     deleteApplication: (req: Request, res: Response) => any
 }
 
+function isProfileIncomplete(profile: any) {
+    return !profile
+        || !profile.talentProfile
+        || !profile.talentProfile.rate
+        || !profile.talentProfile.topSkill
+        || !profile.talentProfile.workLocation
+        || !profile.talentProfile.workType
+        || !profile.talentProfile.location
+        || !profile.talentProfile.languages
+        || !profile.talentProfile.skills;
+}
+
 
 export const applicationController: ApplicationController = {
     getApplicationById: async (req: Request, res: Response) => {
@@ -93,9 +105,8 @@ export const applicationController: ApplicationController = {
         }
     },
     createApplication: async (req: RequestWithUser, res: Response) => {
-        console.log("hit")
         const { id } = req.params;
-        const userId = req.userId;
+        const userId = req.user?.userId;
         if (!id) return res.status(400).json({ message: "invalid request" });
 
         const { coverLetter } = req.body;
@@ -127,14 +138,7 @@ export const applicationController: ApplicationController = {
 
 
             if (!user) return res.status(404).json({ message: "not found" });
-            if (!user.talentProfile
-                || !user.talentProfile.rate
-                || !user.talentProfile.topSkill
-                || !user.talentProfile.workLocation
-                || !user.talentProfile.workType
-                || !user.talentProfile.location
-                || !user.talentProfile.languages
-                || !user.talentProfile.skills) {
+            if (isProfileIncomplete(user.talentProfile)) {
                 return res.status(400).json({ message: "incomplete profile" });
             }
 
@@ -173,7 +177,7 @@ export const applicationController: ApplicationController = {
     },
     deleteApplication: async (req: RequestWithUser, res: Response) => {
         const { id } = req.params;
-        const userId = req.userId;
+        const userId = req.user?.userId;
 
         if (!id) return res.status(400).json({ message: "invalid request" });
 

@@ -7,25 +7,21 @@ const JWT_SECRET = process.env.JWT_SECRET as string;
 
 
 export default function isAuthenticated(req: RequestWithUser, res: Response, next: NextFunction): any {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ message: "unauthorized" });
-    if(!authHeader?.startsWith("Bearer ")) return res.status(401).json({ message: "unauthorized" });
+    const token = req.cookies.auth_token;
 
-    const token = authHeader.split(" ")[1];
-    try{
-        const decoded = jwt.verify(token, JWT_SECRET);
-
-        if (typeof decoded !== "object" || !decoded) return res.status(403).json({ message: "invalid token payload" });
-
-        const { role, userId } = decoded as Payload;
-        if (!role || !userId) return res.status(403).json({ message: "forbidden" });
-        
-        req.userId = userId;
-        req.role = role;
-        next();
-    } catch (e) {
-        console.log(e);
-        return res.status(401).json({ message: "unauthorized" });
+    if (!token) {
+        return res.status(401).json({ message: "Unauthorized" });
     }
 
+    try {
+        const payload = jwt.verify(token, JWT_SECRET as string) as Payload;
+        if(!payload || !payload.userId || !payload.role || !payload.picture) {
+            return res.status(401).json({ message: "Invalid token" });
+        }
+        req.user = payload;
+        next();
+    } catch (err) {
+        console.error("Token verification failed:", err);
+        return res.status(403).json({ message: "Invalid or expired token" });
+    }
 }

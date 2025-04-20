@@ -6,6 +6,7 @@ import verifyPayload from "../utils/verifyPayload.js";
 import { ExchangeBody } from "../types/ExchangeBody.js";
 import exchangeCode from "../utils/exchangeCode.js";
 import getYoutubeData from "../utils/getYoutubeData.js";
+import jwt from "jsonwebtoken";
 
 interface VerificationController {
     verifyYoutuber: (req: RequestWithUser, res: Response) => any;
@@ -27,11 +28,14 @@ const client = new OAuth2Client(VERIFICATION_GOOGLE_CLIENT_ID);
 
 export const verificationController: VerificationController = {
     verifyYoutuber: async (req: RequestWithUser, res: Response) => {
-        const { token } = req.query;
+        const { userId, role } = req.query;
 
-        if (!token || typeof token !== "string") return res.status(400).json({ message: "token is required" });
+        if (!userId || !role) return res.status(400).json({ message: "invalid request" });
+        const state = jwt.sign({ userId, role }, JWT_SECRET as string, {
+            expiresIn: "5m",
+        });
 
-        const url = `${GOOGLE_OAUTH_URL}?client_id=${VERIFICATION_GOOGLE_CLIENT_ID}&redirect_uri=${VERIFICATION_GOOGLE_CALLBACK_URL}&scope=openid%20email%20profile%20https://www.googleapis.com/auth/youtube.readonly&response_type=code&state=${token}`;
+        const url = `${GOOGLE_OAUTH_URL}?client_id=${VERIFICATION_GOOGLE_CLIENT_ID}&redirect_uri=${VERIFICATION_GOOGLE_CALLBACK_URL}&scope=openid%20email%20profile%20https://www.googleapis.com/auth/youtube.readonly&response_type=code&state=${state}`;
 
         res.status(302).redirect(url);
     },

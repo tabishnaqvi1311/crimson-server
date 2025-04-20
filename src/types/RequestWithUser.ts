@@ -1,6 +1,6 @@
 import { Request } from "express";
+import { Payload } from "./Payload.js";
 
 export interface RequestWithUser extends Request {
-    userId?: string;
-    role?: string;
+    user?: Payload;
 }
