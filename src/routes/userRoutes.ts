@@ -73,6 +73,15 @@ userRouter.get(
     userController.getUsersByRole
 );
 
+userRouter.put(
+    "update/:id",
+    isAuthenticated,
+    isAuthorized("TALENT"),
+    throttler,
+    limiter,
+    userController.updateUserDetails
+)
+
 userRouter.delete(
     "/delete/:id",
     isAuthenticated,

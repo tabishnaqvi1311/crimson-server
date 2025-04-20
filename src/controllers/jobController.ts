@@ -1,26 +1,8 @@
 import { Request, Response } from "express";
 import prisma from "../utils/db.js";
 import { RequestWithUser } from "../types/RequestWithUser.js";
+import { WorkLocation, WorkType, JobStatus } from "@prisma/client";
 
-// temporary workround until i add zod
-enum WorkLocation {
-    REMOTE = "REMOTE",
-    ONSITE = "ONSITE",
-    HYBRID = "HYBRID"
-}
-
-enum WorkType {
-    FULL_TIME = "FULL_TIME",
-    PART_TIME = "PART_TIME",
-    PROJECT_BASED = "PROJECT_BASED"
-}
-
-enum JobStatus {
-    OPEN = "OPEN",
-    CLOSED = "CLOSED",
-    DRAFT = "DRAFT",
-    EXPIRED = "EXPIRED"
-}
 interface JobController {
     getAllJobs: (req: RequestWithUser, res: Response) => void;
     getJobById: (req: Request, res: Response) => void;
