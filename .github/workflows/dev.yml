@@ -22,4 +22,4 @@ jobs:
                   npm install
                   npm run compile
                   npx prisma generate
-                  cat "dev lgtm!"
+                  echo "dev lgtm!"
