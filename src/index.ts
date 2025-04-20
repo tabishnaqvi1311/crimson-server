@@ -9,6 +9,7 @@ import jobRouter from "./routes/jobRoutes.js";
 import chalk from "chalk";
 import applicationRouter from "./routes/applicationRoutes.js";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 
 const port: number = parseInt(process.env.PORT as string) || 8080;
 
@@ -19,6 +20,7 @@ if (!process.env.FRONTEND_ORIGIN) {
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(helmet());
 app.use(
     cors({

@@ -6,6 +6,7 @@ import sendMagicLink from "../utils/sendMagicLink.js";
 import { Payload } from "../types/Payload.js";
 import { ExchangeBody } from "../types/ExchangeBody.js";
 import exchangeCode from "../utils/exchangeCode.js";
+import { RequestWithUser } from "../types/RequestWithUser.js";
 
 const {
     JWT_SECRET,
@@ -26,11 +27,24 @@ const emailRegex =
 // big todo: use cookies
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
+const COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production", // Only send over HTTPS in prod
+    sameSite:
+        process.env.NODE_ENV === "production"
+            ? "none"
+            : ("lax" as "none" | "lax"), //prevent CSRF
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
+};
+
 interface AuthController {
     google: (req: Request, res: Response) => any;
     callback: (req: Request, res: Response) => any;
     login: (req: Request, res: Response) => any;
     verify: (req: Request, res: Response) => any;
+    logout: (req: Request, res: Response) => any;
+    me: (req: RequestWithUser, res: Response) => any;
 }
 
 export const authController: AuthController = {
@@ -127,9 +141,9 @@ export const authController: AuthController = {
             { expiresIn: SESSION_EXPIRES_IN },
         );
 
-        // TODO: add dev and prod urls in .env
-        //TODO: handle this on client side by clearng URL
-        return res.redirect(`${FRONTEND_ORIGIN}/auth-success#token=${token}`);
+        res.cookie("auth_token", token, COOKIE_OPTIONS);
+
+        return res.redirect(`${FRONTEND_ORIGIN}/auth-success`);
     },
 
     login: async (req: Request, res: Response) => {
@@ -233,8 +247,30 @@ export const authController: AuthController = {
             { expiresIn: SESSION_EXPIRES_IN },
         );
 
-        return res.redirect(
-            `${FRONTEND_ORIGIN}/auth-success#token=${sessionToken}`,
-        );
+        res.cookie("auth_token", sessionToken, COOKIE_OPTIONS);
+
+        return res.redirect(`${FRONTEND_ORIGIN}/auth-success`);
+    },
+
+    logout: async (req: Request, res: Response) => {
+        res.clearCookie("auth_token", {
+            ...COOKIE_OPTIONS,
+            maxAge: 0,
+        });
+
+        return res.status(200).json({ message: "Logged out successfully" });
+    },
+
+    me: async (req: RequestWithUser, res: Response) => {
+        if (!req.user) {
+            return res.status(401).json({ message: "Not authenticated" });
+        }
+
+        return res.status(200).json({
+            userId: req.user.userId,
+            role: req.user.role,
+            picture: req.user.picture,
+            isVerified: req.user.isVerified,
+        });
     },
 };

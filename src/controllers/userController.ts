@@ -38,11 +38,11 @@ export const userController: UserController = {
     },
 
     getCurrentProfile: async (req: RequestWithUser, res: Response) => {
-        const id = req.userId;
+        const id = req.user?.userId;
         let user = null;
 
         try {
-            if (req.role === "YOUTUBER") {
+            if (req.user?.role === "YOUTUBER") {
                 user = await prisma.user.findUnique({
                     where: { id: id },
                     select: {
@@ -67,7 +67,7 @@ export const userController: UserController = {
                         } }
                     },
                 })
-            } else if (req.role === "TALENT") {
+            } else if (req.user?.role === "TALENT") {
                 user = await prisma.user.findUnique({
                     where: { id: id },
                     select: {
@@ -178,7 +178,7 @@ export const userController: UserController = {
     },
 
     getYoutuberVerifedStatus: async (req: RequestWithUser, res: Response) => {
-        const id = req.userId;
+        const id = req.user?.userId;
 
         try {
             const user = await prisma.user.findUnique({
@@ -227,7 +227,7 @@ export const userController: UserController = {
         const id = req.params.id;
         if (!id) return res.status(400).json({ "message": "invalid request" });
 
-        const userId = req.userId;
+        const userId = req.user?.userId;
         if (userId !== id) return res.status(403).json({ 'message': "forbidden" });
 
         const user = await prisma.user.findUnique({where: {id : id}});
