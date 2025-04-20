@@ -1,0 +1,23 @@
+name: deploy
+
+on:
+    jobs:
+        build:
+            runs-on: ubuntu-latest
+
+            steps:
+                - name: deploy
+                  uses: appleboy/ssh-action@master
+                  with:
+                      host: ${{ secrets.DO_HOST }}
+                      username: ${{ secrets.DO_USERNAME }}
+                      key: ${{ secrets.DO_SSH_KEY }}
+                      script: |
+                          set -e
+                          export NVM_DIR=~/.nvm
+                          source ~/.nvm/nvm.sh
+                          cd /home/tabish/crimson-server
+                          git pull origin main
+                          docker-compose down
+                          docker-compose up -d --build
+                          echo "deployment success!"
