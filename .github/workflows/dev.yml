@@ -1,0 +1,25 @@
+name: dev
+
+on:
+    push:
+        branches: ["dev"]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: checkout repo
+              uses: actions/checkout@v4
+
+            - name: setup node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "22.13.0"
+
+            - name: install deps
+              run: |
+                  npm install
+                  npm run compile
+                  npx prisma generate
+                  echo "dev lgtm!"
