@@ -22,4 +22,19 @@ jobs:
                   npm install
                   npm run compile
                   npx prisma generate
-                  echo "dev lgtm!"
+                  echo "deps installed"
+
+            - name: build image
+              run: |
+                  docker build -t crimson-server .
+
+            - name: run container
+              run: |
+                  docker compose up -d
+
+            - name: stop and remove container
+              if: always()
+              run: docker compose down
+
+            - name: finalize dev checks
+            run: echo "dev lgtm!"
