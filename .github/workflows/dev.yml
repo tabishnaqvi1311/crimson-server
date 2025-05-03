@@ -37,4 +37,4 @@ jobs:
               run: docker compose down
 
             - name: finalize dev checks
-            run: echo "dev lgtm!"
+              run: echo "dev lgtm!"
